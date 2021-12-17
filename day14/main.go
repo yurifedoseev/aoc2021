@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"container/list"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 )
@@ -14,24 +15,19 @@ type Task struct {
 	ComboRune map[RunePair]rune
 }
 
-type Progress struct {
-	Combo map[string]string
-	MaxComboLen int
-}
-
 type RunePair struct {
 	First rune
 	Second rune
 }
 
 func run() error {
-	task, err := parse("day14/example.txt")
+	task, err := parse("day14/input.txt")
 	if err != nil {
 		return err
 	}
 	fmt.Printf("\n input %s, %d combos, %d rune combos", task.Input, len(task.Combo), len(task.ComboRune))
 
-	silver(task)
+	gold(task)
 	return nil
 }
 
@@ -78,15 +74,6 @@ func silver(task *Task) {
 	}
 }
 
-func goldV4(task *Task) {
-	days := 40
-	polyLen := len(task.Input)
-	for d := 1; d <= days; d++ {
-		nextLen := polyLen * 2 - 1
-		fmt.Printf("\n day %d len %d", d, nextLen)
-		polyLen = nextLen
-	}
-}
 
 func countMinMax(charCount map[string]int) {
 	minChar, maxChar := "N", "N"
@@ -183,26 +170,42 @@ func goldV3(task *Task) {
 }
 
 func gold(task *Task) {
-	days := 40
-	polymer := list.New()
-	for _, val := range task.Input {
-		polymer.PushBack(val)
-	}
-
-	for d := 1; d <= days; d++ {
-		growPolymerList(polymer, task.ComboRune)
-		fmt.Printf("\n day %d, poly len %d", d, polymer.Len())
-	}
-
-	fmt.Printf("\n poly:")
-	charCount := make(map[rune]int)
-	for e := polymer.Front(); e != nil; e = e.Next() {
-		val :=  e.Value.(rune)
+	charCount := make(map[string]int)
+	pairCount := make(map[string]int)
+	for i, ch := range task.Input {
+		val := string(ch)
 		charCount[val]++
+		if i < len(task.Input) - 1 {
+			pairCount[task.Input[i:i+2]]++
+		}
 	}
 
-	countMinMaxRune(charCount)
+	for d := 0; d < 40; d++ {
+		newPairs := make(map[string]int)
+		for pair, count := range pairCount {
+			newCh := task.Combo[pair]
+			charCount[newCh] += count
+			newPairs[string(pair[0]) + newCh] +=count
+			newPairs[newCh + string(pair[1])] +=count
+		}
+		pairCount = newPairs
+	}
+
+	maxCount, minCount := 0, math.MaxInt
+	for _, count := range charCount {
+		if count > maxCount {
+			maxCount = count
+		}
+
+		if count < minCount {
+			minCount = count
+		}
+	}
+
+	fmt.Printf("\n max %d - min %d = %d", maxCount, minCount, maxCount - minCount)
 }
+
+
 
 func countMinMaxRune(charCount map[rune]int) {
 	minChar, maxChar := []rune("N")[0], []rune("N")[0]
